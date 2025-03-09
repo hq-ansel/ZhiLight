@@ -46,12 +46,12 @@ class OpenAIServingChat(OpenAIServing):
             return error_check_ret
 
         try:
-            '''
-            prompt = self.tokenizer.apply_chat_template(
-                conversation=request.messages,
-                tokenize=False,
-                add_generation_prompt=request.add_generation_prompt)
-            '''
+            # '''
+            # prompt = self.tokenizer.apply_chat_template(
+            #     conversation=request.messages,
+            #     tokenize=False,
+            #     add_generation_prompt=request.add_generation_prompt)
+            # '''
             prompt = request.messages
         except Exception as e:
             logger.error(

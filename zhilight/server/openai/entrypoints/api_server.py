@@ -2,24 +2,6 @@
 # Author: wangjingjing@zhihu.com, vLLM team
 #
 
-from zhilight.server.openai.entrypoints.preparse_cli_args import preparse_args
-from zhilight.server.openai.basic.logger import init_logger
-from zhilight.server.openai.basic.utils import (
-                                    parse_zhilight_version,
-                                    register_environs,
-                                    get_options_info,
-                                    make_async,
-                                    force_install_packages)
-engine_version = None
-logger = init_logger(__name__)
-
-
-args, _ARGV_ = preparse_args()
-if args is not None:
-    engine_version = parse_zhilight_version(args.zhilight_version)
-    force_install_packages(args.pip)
-    register_environs(args.environ)
-
 import os
 import asyncio
 from contextlib import asynccontextmanager
@@ -52,14 +34,15 @@ from zhilight.server.openai.entrypoints.middleware import add_middleware
 
 TIMEOUT_KEEP_ALIVE = 5  # seconds
 
-parser = None
+# global variables
+arg_parser = None
 openai_serving_chat: OpenAIServingChat = None
 openai_serving_completion: OpenAIServingCompletion = None
 
 def parse_args():
-    global parser
-    parser = make_arg_parser()
-    return parser.parse_args(args=_ARGV_)
+    global arg_parser
+    arg_parser = make_arg_parser()
+    return arg_parser.parse_args(args=_ARGV_)
 
 # 定时输出 stats log
 @asynccontextmanager
@@ -81,6 +64,7 @@ app = fastapi.FastAPI(lifespan=lifespan)
 
 
 # Add prometheus asgi middleware to route /metrics requests
+# Asynchronous Server Gateway Interface ASGI
 metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
 
@@ -113,7 +97,7 @@ async def show_version():
 
 @app.get("/options")
 async def get_options():
-    options = await make_async(get_options_info)(parser)
+    options = await make_async(get_options_info)(arg_parser)
     return JSONResponse(content=options)
 
 @app.post("/v1/chat/completions")
@@ -170,6 +154,10 @@ if __name__ == "__main__":
     openai_serving_completion = OpenAIServingCompletion(engine, served_model)
 
     app.root_path = args.root_path
+    # Uvicorn 是一个用于运行 ASGI (Asynchronous Server Gateway Interface) 
+    # 应用的高性能服务器。它基于 uvloop 和 httptools 构建，
+    # 这两个库为 Python 提供了快速的事件循环和 HTTP 解析能力，
+    # 使得 Uvicorn 在处理异步请求时非常高效。
     uvicorn.run(app,
                 host=args.host,
                 port=args.port,

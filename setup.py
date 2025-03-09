@@ -12,13 +12,34 @@ ROOT_DIR = os.path.dirname(__file__)
 # The name must be the _single_ output extension from the CMake build.
 # If you need multiple extensions, see scikit-build.
 class CMakeExtension(Extension):
+    """自定义的CMake扩展类，继承自Extension类"""
+    
     def __init__(self, name, target="C", sourcedir=""):
+        """初始化CMakeExtension实例
+        
+        参数:
+        name : str
+            扩展的名称
+        target : str
+            目标语言，默认为"C"
+        sourcedir : str
+            源代码目录，默认为空
+        """
         Extension.__init__(self, name, sources=[])
         self.target = target
         self.sourcedir = os.path.abspath(sourcedir)
 
 
 class CMakeBuild(build_ext):
+    '''
+    from setuptools.command.build_ext import build_ext
+    build_ext 是setuptools的build_ext命令，继承自distutils.command.build_ext。
+    distutils.command.build_ext 是Python的默认构建系统，负责编译Python扩展模块。
+    这个类的作用是继承build_ext，并重写其build_extension方法，以调用CMake编译器编译C++扩展模块。
+    distutils.command.build_ext 的run方法在配置完参数会调用build_extension方法编译扩展模块。   | 这里的self是setuptools.command.build_ext类
+    CmakeBuild.run()->setuptools.command.build_ext.run()->distutils.command.build_ext.run(self)->
+    distutils.command.build_ext.build_extension()
+    '''
     def build_extension(self, ext):
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
 
@@ -28,8 +49,8 @@ class CMakeBuild(build_ext):
 
         debug = int(os.environ.get("DEBUG", 0)) if self.debug is None else self.debug
         cfg = "RelWithDebInfo" if debug else "Release"
-        testing = int(os.environ.get("TESTING", 1))
-        testing_cfg = "ON" if testing else "OFF"
+        _testing = int(os.environ.get("TESTING", 1))
+        testing_cfg = "ON" if _testing else "OFF"
 
         # CMake lets you override the generator - we need to check this.
         # Can be set with Conda-Build, for example.
@@ -39,11 +60,26 @@ class CMakeBuild(build_ext):
         # EXAMPLE_VERSION_INFO shows you how to pass a value into the C++ code
         # from Python.
         cmake_args = [
-            f"-DCMAKE_CXX_STANDARD=17",
+            # 指定C++标准为C++17，确保编译器使用C++17标准来编译源文件。
+            "-DCMAKE_CXX_STANDARD=17",
+            
+            # 设置输出库文件的目录为扩展模块的目录（extdir）。
+            # 这个目录是最终生成的共享库或静态库的目标位置。
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}",
+            
+            # 指定Python可执行文件的路径。这个值通常指向当前使用的Python解释器，
+            # 以确保生成的扩展与该Python版本兼容。
             f"-DPYTHON_EXECUTABLE={sys.executable}",
+            
+            # 指定Python的版本号，格式为主版本号.次版本号（例如3.12）。
+            # 这个信息可能被用于依赖管理和兼容性检查。
             f"-DPYTHON_VERSION={sys.version_info.major}.{sys.version_info.minor}",
+            
+            # 设置CMake的构建类型（如Release, Debug等）。虽然在MSVC（Microsoft Visual C++）中不使用这个变量，
+            # 但在其他编译器环境下是有用的，因此这里设置也不会造成负面影响。
             f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
+            
+            # 启用或禁用测试配置。根据项目的具体需求，可能需要开启或关闭单元测试等相关功能。
             f"-DWITH_TESTING={testing_cfg}",
         ]
 
@@ -52,9 +88,9 @@ class CMakeBuild(build_ext):
         if os.path.exists("/opt/rh/devtoolset-7/root/bin/gcc"):
             cmake_args.extend(
                 [
-                    f"-DCMAKE_C_COMPILER=/opt/rh/devtoolset-7/root/bin/gcc",
-                    f"-DCMAKE_CXX_COMPILER=/opt/rh/devtoolset-7/root/bin/g++",
-                    f"-DCMAKE_CUDA_COMPILER=/usr/local/cuda-11.1/bin/nvcc",
+                    "-DCMAKE_C_COMPILER=/opt/rh/devtoolset-7/root/bin/gcc",
+                    "-DCMAKE_CXX_COMPILER=/opt/rh/devtoolset-7/root/bin/g++",
+                    "-DCMAKE_CUDA_COMPILER=/usr/local/cuda-11.1/bin/nvcc",
                 ]
             )
         build_args = [f"--target {ext.target}"]
@@ -116,6 +152,9 @@ if testing:
 from version import __version__
 
 def get_path(*filepath) -> str:
+    """
+    在file的中定义了全局变量ROOT_DIR，将filepath与ROOT_DIR拼接，返回绝对路径
+    """
     return os.path.join(ROOT_DIR, *filepath)
 
 def get_requirements() -> List[str]:

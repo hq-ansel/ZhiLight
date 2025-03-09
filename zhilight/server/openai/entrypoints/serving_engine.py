@@ -90,13 +90,13 @@ class OpenAIServing:
             else:
                 token_logprob = None
             token = step_top_logprobs[token_id].decoded_token
-            logprobs.tokens.append(token)
-            logprobs.token_logprobs.append(token_logprob)
+            logprobs.tokens.append(token) # pylint: disable=no-member
+            logprobs.token_logprobs.append(token_logprob) # pylint: disable=no-member
             if len(logprobs.text_offset) == 0:
-                logprobs.text_offset.append(initial_text_offset)
+                logprobs.text_offset.append(initial_text_offset) # pylint: disable=no-member
             else:
                 logprobs.text_offset.append(logprobs.text_offset[-1] +
-                                            last_token_len)
+                                            last_token_len) # pylint: disable=no-member
             last_token_len = len(token)
 
             if num_output_top_logprobs:

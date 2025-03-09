@@ -205,7 +205,11 @@ class AsyncLLMEngine:
 
         return stream
 
-    async def step_loop(self, prompt: Union[str, List[Dict[str, str]]], sampling_params: SamplingParams, handler: StreamHandler, stream: AsyncStream):
+    async def step_loop(self,
+                        prompt: Union[str, List[Dict[str, str]]], 
+                        sampling_params: SamplingParams,
+                        handler: StreamHandler,
+                        stream: AsyncStream):
         first = True
         finished = False
         tm_beg = time.time()
