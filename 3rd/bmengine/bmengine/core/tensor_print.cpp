@@ -213,6 +213,7 @@ const char* get_data_type_name(DataType dtype) {
 static const std::map<const std::string, DataType> datatype_name_mapping {
     { "double", DataType::kDouble },
     { "float", DataType::kFloat },
+    { "float32", DataType::kFloat }, // add implicit mapping for "float32" 
     { "half", DataType::kHalf },
     { "float16", DataType::kHalf },
     { "bfloat", DataType::kBFloat16 },

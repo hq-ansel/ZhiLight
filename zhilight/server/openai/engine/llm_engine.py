@@ -40,6 +40,7 @@ class LLMEngine:
                 else:
                     self._instance.load_model_pt(engine_config.model_path)
         
+        logger.info(f"model loaded => {self._instance}")
         # Create dyn generator
         self.dyn_generator = DynamicBatchGenerator(
             engine_config.dyn_batch_config,

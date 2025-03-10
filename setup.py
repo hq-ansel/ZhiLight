@@ -139,6 +139,51 @@ class CMakeBuild(build_ext):
         subprocess.check_call(["cmake", "--build", "."] + build_args, cwd=build_temp)
 
 
+class repackage_wheel(build_ext):
+    """Extracts libraries and other files from an existing wheel."""
+
+    def run(self) -> None:
+        wheel_location = os.getenv("VLLM_PRECOMPILED_WHEEL_LOCATION", 
+                                   "dist/zhilight-0.4.15-cp312-cp312-linux_x86_64.whl")
+        import zipfile
+        if os.path.isfile(wheel_location):
+            wheel_path = wheel_location
+            print(f"Using existing wheel={wheel_path}")
+        else:
+            raise FileNotFoundError(f"File not found: {wheel_location}")
+
+
+        with zipfile.ZipFile(wheel_path) as wheel:
+            files_to_copy = [
+                "vllm/_C.abi3.so",
+                "vllm/_moe_C.abi3.so",
+                "vllm/_flashmla_C.abi3.so",
+                "vllm/vllm_flash_attn/_vllm_fa2_C.abi3.so",
+                "vllm/vllm_flash_attn/_vllm_fa3_C.abi3.so",
+                "vllm/vllm_flash_attn/flash_attn_interface.py",
+                "vllm/vllm_flash_attn/__init__.py",
+                "vllm/cumem_allocator.abi3.so",
+                # "vllm/_version.py", # not available in nightly wheels yet
+            ]
+            file_members = filter(lambda x: x.filename in files_to_copy,
+                                  wheel.filelist)
+
+            for file in file_members:
+                print(f"Extracting and including {file.filename} "
+                      "from existing wheel")
+                package_name = os.path.dirname(file.filename).replace("/", ".")
+                file_name = os.path.basename(file.filename)
+
+                if package_name not in package_data:
+                    package_data[package_name] = []
+
+                wheel.extract(file)
+                if file_name.endswith(".py"):
+                    # python files shouldn't be added to package_data
+                    continue
+
+                package_data[package_name].append(file_name)
+
 ext_modules = [
     CMakeExtension("zhilight.C", "C"),
 ]
@@ -174,16 +219,19 @@ def get_requirements() -> List[str]:
         return resolved_requirements
     return _read_requirements("requirements.txt")
 
+cmdclass ={
+        "build_ext":
+        repackage_wheel if os.environ.get("PRECOMPILE_WHEEL", 0) == "1" else CMakeBuild
+    }
+
 setup(
     name="zhilight",
-    version=__version__,
-    author="Zhihu and ModelBest Teams",
     description="Optimized inference engine for llama and similar models",
     long_description="",
     ext_modules=ext_modules,
     cmdclass={"build_ext": CMakeBuild},
     zip_safe=False,
-    packages= find_packages(exclude=("tests", )),
+    packages= find_packages(exclude=("tests", "examples")),
     python_requires=">=3.9",
     include_package_data=True,
     install_requires=get_requirements(),

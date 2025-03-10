@@ -6,7 +6,9 @@ def preparse_args():
         return None, None
     parser = argparse.ArgumentParser(description='preparse some arguments before loading core packages.')
     add_preparse_argmuents(parser)
-    return parser.parse_known_args()
+    namespace, args = parser.parse_known_args()
+    print(namespace,args)
+    return namespace, args
 
 def add_preparse_argmuents(parser):
     parser.add_argument("--zhilight-version",

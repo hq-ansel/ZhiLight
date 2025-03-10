@@ -35,7 +35,9 @@ static DataType get_dtype(const py::dict& cfg) {
     if (cfg.contains("torch_dtype") || cfg.contains("dtype")) {
         auto str_dtype = get_attr<std::string>(cfg, "dtype", "torch_dtype");
         auto data_type = bmengine::core::name_to_data_type(str_dtype);
-        if (data_type != DataType::kBFloat16 && data_type != DataType::kHalf) {
+        if (data_type != DataType::kBFloat16 && data_type != DataType::kHalf &&
+            data_type != DataType::kFloat && data_type != DataType::kDouble
+        ) {
             throw std::runtime_error(std::string("Unsupported dtype: ") + str_dtype);
         }
         return data_type;

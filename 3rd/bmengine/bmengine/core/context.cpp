@@ -464,6 +464,9 @@ void Context::assign_or_copy(Tensor* dst, const Tensor* src) const {
         return;
     }
     BM_ASSERT_EQ(src->shape(), dst->shape(), "src and dst have different shape");
+    // if (src->data() == DataType::kHalf && dst->dtype() == DataType::kFloat) 
+    //     src = &(src->view_type())
+    // TODO: 计划解决强制类型转换的问题
     if (src->dtype() != DataType::kInt16)
         BM_ASSERT_EQ(src->dtype(), dst->dtype(), "src and dst have different dtype");
     // allocate memory

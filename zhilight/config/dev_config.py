@@ -34,22 +34,22 @@ RESERVE_MEM_MB = "RESERVE_MEM_MB"  # Reserve GPU memory NOT used by ZhiLight
 ROPE_CACHE = "ROPE_CACHE"
 
 
-def get_int_env(name, default=0):
+def get_int_env(name, default=0): #pylint: disable=missing-function-docstring
     return int(os.environ.get(name, default))
 
 
-def set_env(name, value, tip=''):
+def set_env(name, value, tip=''):  #pylint: disable=missing-function-docstring
     if name not in os.environ:
         print(f"### Auto Set dev env: {name}={value} {tip}")
         os.environ[name] = str(value)
 
 
-def set_env_kv(**kwargs):
+def set_env_kv(**kwargs):  #pylint: disable=missing-function-docstring
     for k, v in kwargs.items():
         set_env(k, str(v))
 
 
-def set_envs(env_dict: dict):
+def set_envs(env_dict: dict):  #pylint: disable=missing-function-docstring
     for k, v in env_dict.items():
         set_env(k, v)
 

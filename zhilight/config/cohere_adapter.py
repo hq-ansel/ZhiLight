@@ -1,11 +1,14 @@
 # coding=utf-8
+import os
+from .dev_config import (
+    FUSE_QKV,
+    DUAL_STREAM,
+)
 
-from .dev_config import *
 
-
-class CohereAdapter:
+class CohereAdapter: # pylint: disable=missing-class-docstring
     @staticmethod
-    def adapt(config: dict):
+    def adapt(config: dict): # pylint: disable=missing-function-docstring
         config["eps"] = config["layer_norm_eps"]
         if 'tie_lm_head' not in config:
             config["tie_lm_head"] = True

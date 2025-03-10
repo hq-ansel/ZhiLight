@@ -130,6 +130,11 @@ class LLaMA:
 
         self._init_tokenizer(model_path, tokenizer)
 
+        # only support 16bit
+        # if self._config.get("torch_dtype", "") == "float32":
+        #     self._config["dtype"] = "float32"   
+        #     print("force float32 to float16")
+
         c_config = C.ModelConfig(self._config)
         c_quant_config = quant_config_to_c(self._quant_config)
         C.initialize_gemm(c_config, c_quant_config, dist_config.tp, self._config["max_token"])
@@ -194,10 +199,11 @@ class LLaMA:
                 return p.half()
             return p
 
-        if self._config.get("force_half", False):
-            for name, param in list(state_dict.items()):
-                if param.dtype == torch.bfloat16:
-                    state_dict[name] = param.half()
+        # if self._config.get("force_half", False):
+        # for name, param in list(state_dict.items()):
+        #     if (param.dtype == torch.bfloat16 or  
+        #         param.dtype == torch.float32):
+        #         state_dict[name] = param.half()
 
         new_state_dict = {
             LLaMALoader._replace_name(name): np.atleast_1d(trans_type(param.dtype, param).cpu().numpy())

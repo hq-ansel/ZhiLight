@@ -1,4 +1,5 @@
 #include "bmengine/core/layer.h"
+#include "bmengine/core/exception.h"
 #include <iomanip>
 #include "bmengine/core/context.h"
 #include "bmengine/functions/init.h"
@@ -109,7 +110,9 @@ void Layer::load_param_from_state_dict(
         BM_ASSERT(allow_missing, "param " + name + " not found in state_dict");
         return;
     }
-    ctx.assign_or_copy(param, &it->second);
+    try{
+        ctx.assign_or_copy(param, &it->second);
+    }catch (BMEngineException e) { std::cerr << e.what() << std::endl; }
 }
 
 } // namespace core

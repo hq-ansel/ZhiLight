@@ -1,0 +1,20 @@
+[project]
+name = "zhilight"
+authors = [
+    {name = "qqq"}    
+]
+version = "0.4.15"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "torch",
+    "numpy",
+    "transformers>=4.46.2",
+    "fastapi>=0.115.5",
+    "psutil==6.1.0",
+    "prometheus_client==0.21.0",
+    "uvicorn>=0.32.0",
+    "pybind11==2.13.6",
+    "flash-attn==2.7.0.post2",
+]

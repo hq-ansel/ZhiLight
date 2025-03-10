@@ -23,6 +23,10 @@ enable_language(CUDA)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+# 使用 ccache 加速编译
+set(CMAKE_C_COMPILER_LAUNCHER "ccache")
+set(CMAKE_CXX_COMPILER_LAUNCHER "ccache")
+
 # 设置 CUDA 标准为 C++17，并要求必须使用该标准
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_STANDARD_REQUIRED True)

@@ -1,19 +1,26 @@
 # coding=utf-8
 
-from .config_util import *
-from .dev_config import *
+from .config_util import (
+    get_quant_method,
+    set_default,
+    set_neox_style,
+)
+from .dev_config import (
+    LATENT_CACHE,
+    set_env,
+)
 
 
-def awq_use_exllama(config: dict):
+def awq_use_exllama(config: dict):  # pylint: disable=missing-function-docstring
     quant_method = get_quant_method(config)
     if quant_method == "awq":
         print("Use Int4GPTQ for AWQ checkpoint.")  # Linear::Int4GPTQ
         set_env("AWQ_USE_EXLLAMA", 1)  # Linear::AWQ::get_dequant_weight() is not implemented
 
 
-class DeepseekV2Adapter:
+class DeepseekV2Adapter: # pylint: disable=missing-class-docstring
     @staticmethod
-    def adapt(config: dict):
+    def adapt(config: dict):  # pylint: disable=missing-function-docstring
         set_env(LATENT_CACHE, 1)
         set_env("FREEZE_MEM_EACH_LAYER", 1)
         set_env("MOE_EXP_PARALLEL", 1)
@@ -39,7 +46,7 @@ class DeepseekV2Adapter:
                 config["force_half"] = True
 
 
-class DeepseekV3Adapter:
+class DeepseekV3Adapter: # pylint: disable=missing-class-docstring
     @staticmethod
-    def adapt(config: dict):
+    def adapt(config: dict):  # pylint: disable=missing-function-docstring
         DeepseekV2Adapter.adapt(config)

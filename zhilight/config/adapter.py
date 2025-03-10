@@ -1,8 +1,14 @@
 # coding=utf-8
 # Author: spetrel@gmail.com
 
-from .dev_config import *
-from .config_util import *
+from .dev_config import (
+    CHUNKED_PREFILL,
+    get_int_env,
+    set_env,
+)
+from .config_util import (
+    set_default,
+)
 # Keep in alphabetical order
 from .cohere_adapter import CohereAdapter
 from .deepseek_adapter import DeepseekV2Adapter, DeepseekV3Adapter
@@ -21,9 +27,9 @@ def _get_model_type(config: dict):
     return ""
 
 
-class ModelAdapter:
+class ModelAdapter: # pylint: disable=missing-class-docstring
     @staticmethod
-    def adapt(config: dict):
+    def adapt(config: dict): # pylint: disable=missing-function-docstring
         model_type = config.get("model_type", "")
         set_default(config, "rope_scaling", {})
 
@@ -47,7 +53,7 @@ class ModelAdapter:
         return config
 
     @staticmethod
-    def adapt_gptq(config: dict):
+    def adapt_gptq(config: dict): # pylint: disable=missing-function-docstring
         quant_config = config.get("quantization_config", {})
         if (
                 quant_config

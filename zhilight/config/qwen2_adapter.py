@@ -1,12 +1,28 @@
 # coding=utf-8
+import os
+from .dev_config import (
+    set_envs,
+    set_env,
+    CHUNKED_PREFILL,
+    CHUNKED_PREFILL_SIZE,
+    FUSE_QKV,
+    FUSE_FF_IN,
+    HOST_REDUCE,
+    HOST_REDUCE_COPY_ONLY,
+    HIGH_PRECISION,
+    DUAL_STREAM,
+    DUAL_STREAM_THRESHOLD,
+    REDUCE_TP_INT8_THRES,
+    PRE_ALLOC_ALL_TOKEN,
+)
+from .config_util import (
+    get_quant_method
+)
 
-from .dev_config import *
-from .config_util import *
 
-
-class Qwen2Adapter:
+class Qwen2Adapter: #pylint: disable=missing-class-docstring
     @staticmethod
-    def adapt(config: dict):
+    def adapt(config: dict):  #pylint: disable=missing-function-docstring
         if config["num_hidden_layers"] in [48, 28] and config["hidden_size"] in [5120, 3584]:
             m_size = '14b' if config["hidden_size"] == 48 else '7b'
             print(f"##### Adapt qwen2 {m_size} config ########")
