@@ -5,7 +5,7 @@ from zhilight import LLaMA
 from zhilight.loader import LLaMALoader
 from zhilight.dynamic_batch import DynamicBatchConfig, GeneratorArg, DynamicBatchGenerator
 
-model_path = "./Qwen2.5-72B-Instruct-GPTQ-Int4"
+model_path = "/home/ubuntu/data/exp/proj2410/model/Qwen2.5-14B"
 
 model_config = LLaMALoader.load_llama_config(model_path)
 

@@ -86,12 +86,12 @@ private:
     std::shared_ptr<DynBatchContext> dyn_batch_;
     std::shared_ptr<RagBufferContext> rag_buffer_;
 
-    std::shared_ptr<ReduceContext> reducer_;
+    std::shared_ptr<ReduceContext> reducer_; //为什么要设置一个这样的共享指针？
     std::shared_ptr<HostAllReducer> host_reducer_;
     std::shared_ptr<bmengine::core::TaskThreadPool> reducer_thread_;
     core::Stream reducer_stream_;
 
-    float smooth_quant_alpha_ { -1 };
+    float smooth_quant_alpha_ { -1 }; // 默认成员初始化
     float smooth_quant_min_scale_ { 1e-5 };
     float smooth_quant_max_scale_ { 1e5 };
     bool calc_act_scales_ { false };
@@ -110,9 +110,19 @@ public:
         bool BSHD = false);
     ~ModelContext() override;
     ModelContext(ModelContext&&) = default;
-
+    /*
+    静态成员函数 静态成员函数属于类本身，而不是类的实例。 它可以直接通过类名调用，而不需要创建类的对象。 静态成员函数不能访问类的非静态成员（因为没有 this 指针）。
+    常量引用 使用 const 表示 ctx 对象在函数内部不能被修改 使用引用（&）避免了对象的拷贝，提高了效率。
+    */ 
     static ModelContext* cast(const core::Context& ctx) {
+        // dynamic_cast 动态类型转换操作符  它用于在继承层次结构中进行安全的向下转型（从基类指针/引用转换为派生类指针/引用）。
+        // 它会在运行时检查转换是否合法。如果转换失败，返回 nullptr（对于指针）或抛出 std::bad_cast 异常（对于引用）。
+        // 使用 dynamic_cast 的前提是类必须至少有一个虚函数（即多态类型）。
         return dynamic_cast<ModelContext*>(const_cast<core::Context*>(&ctx));
+        // 这里 const_cast 移除了 ctx 的 const 属性，将其转换为一个非 const 的指针。
+        // 这种做法通常用于在需要修改 const 对象时，但需要谨慎使用，因为它可能导致未定义行为。
+        // dynamic_cast 只能用于非 const 的指针或引用。如果直接对 const 指针使用 dynamic_cast，编译器会报错。
+        // 因此，必须先移除 const 属性，才能进行 dynamic_cast。
     }
 
     bool is_parallel() { return parallel_; }

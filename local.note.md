@@ -40,6 +40,8 @@ then run compiile
 make 
 
 make install
+
+make &&  make install
 ```
 
 ```bash
@@ -61,4 +63,6 @@ $ CMAKE_GENERATER="Ninja" python setup.py install
 
 cd ./ZhiLight && pip install -e .
 
-python -m zhilight.server.openai.entrypoints.api_server --model-path /home/ubuntu/data/exp/proj2410/model/Qwen2.5-14B --dyn-max-batch-size 32
+python -m zhilight.server.openai.entrypoints.api_server --model-path /home/ubuntu/data/exp/proj2410/model/Qwen2.5-14B --dyn-max-batch-size 4
+
+nsys profile -o output_file_name -- python -m zhilight.server.openai.entrypoints.api_server --model-path /home/ubuntu/data/exp/proj2410/model/Qwen2.5-14B -dyn-max-batch-size 4

@@ -1,0 +1,112 @@
+# 指定 CMake 的最低版本要求为 3.10
+cmake_minimum_required(VERSION 3.10)
+
+# 定义项目名称和版本号
+project(easyengine VERSION 0.1)
+
+# 启用 C 和 C++ 语言支持
+enable_language(C)
+enable_language(CXX)
+
+# 如果没有定义 CMAKE_CUDA_ARCHITECTURES，则设置默认的 CUDA 架构版本
+# 这里支持 CUDA 架构 80 (Ampere)、89 (Ada Lovelace) 和 90a (Hopper)
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+  set(CMAKE_CUDA_ARCHITECTURES "80;89;90a")
+endif()
+
+# 启用 CUDA 语言支持
+enable_language(CUDA)
+
+# 设置 C++ 标准为 C++17，并强制要求支持该标准
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+# 将项目目录下的 cmake/ 路径添加到 CMAKE_MODULE_PATH 中
+# 用于查找自定义的 CMake 模块
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/)
+
+# 查找 CUDA 运行时库 (cudart)
+find_library(CUDART_LIBRARY cudart ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+
+# 查找 CUDA BLAS 库 (cublas)
+find_library(CUBLAS_LIBRARY cublas ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+
+# 查找 CUDA BLAS LT 库 (cublasLt)
+find_library(CUBLASLT_LIBRARY cublasLt ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+
+# 查找 CUDA 随机数库 (curand_static)
+find_library(CUBRAND_LIBRARY curand_static ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+
+# 查找 CUDA 基础库 (culibos)
+find_library(CULIBOS_LIBRARY culibos ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
+
+# 查找并加载 NCCL 库，设置为必需依赖
+find_package(NCCL REQUIRED)
+
+# 递归查找所有 .cpp 文件，并将其路径存储在 FILES_EASYENGINE 变量中
+file(GLOB_RECURSE FILES_EASYENGINE "*.cpp")
+
+# 递归查找所有 .cu 文件，并将其路径存储在 FILES_EASYENGINE_CUDA 变量中
+file(GLOB_RECURSE FILES_EASYENGINE_CUDA "*.cu")
+
+# 递归查找 include/easyengine 目录下的所有 .h 文件，并将其相对路径存储在 FILES_EASYENGINE_HEADER 变量中
+file(GLOB_RECURSE FILES_EASYENGINE_HEADER RELATIVE "include/easyengine" "*.h")
+
+# 创建一个名为 easyengine 的静态库，包含所有 .cpp 和 .cu 文件
+add_library(easyengine STATIC
+    ${FILES_EASYENGINE}
+    ${FILES_EASYENGINE_CUDA}
+)
+
+# 如果 NCCL 库找到，则将其头文件路径添加到包含目录中
+if(NCCL_FOUND)
+  include_directories(SYSTEM ${NCCL_INCLUDE_DIRS})
+else()
+  # 如果 NCCL 库未找到，则发出警告，并设置 USE_NCCL 为 OFF
+  message(WARNING "Not compiling with NCCL support. Suppress this warning with -DUSE_NCCL=OFF.")
+  set(USE_NCCL OFF)
+endif()
+
+# 设置 easyengine 库为位置无关代码 (Position Independent Code, PIC)
+set_property(TARGET easyengine PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+# 设置 easyengine 库的 C++ 符号可见性为隐藏
+set_property(TARGET easyengine PROPERTY CMAKE_CXX_VISIBILITY_PRESET hidden)
+
+# 设置 easyengine 库的 CUDA 符号可见性为隐藏
+set_property(TARGET easyengine PROPERTY CMAKE_CUDA_VISIBILITY_PRESET hidden)
+
+# 设置 easyengine 库的公共头文件包含目录
+target_include_directories(easyengine 
+    PUBLIC "include"  # 包含项目根目录下的 include 目录
+    PUBLIC "include/private/3rd/"  # 包含第三方库的头文件目录
+    PUBLIC ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}  # 包含 CUDA 工具链的头文件目录
+)
+
+# 链接 easyengine 库所需的依赖库
+target_link_libraries(
+    easyengine 
+    ${CUDART_LIBRARY}  # CUDA 运行时库
+    ${CUBLAS_LIBRARY}  # CUDA BLAS 库
+    ${CUBLASLT_LIBRARY}  # CUDA BLAS LT 库
+    ${CUBRAND_LIBRARY}  # CUDA 随机数库
+    ${CULIBOS_LIBRARY}  # CUDA 基础库
+    ${NCCL_LIBRARIES}  # NCCL 库
+    "-Wl,-Bsymbolic -Wl,-Bsymbolic-functions"  # 链接器选项，避免符号冲突
+    "pthread"  # POSIX 线程库
+)
+
+# 包含 GNU 安装目录定义模块
+include(GNUInstallDirs)
+
+# 安装 easyengine 库到系统的库目录
+install(
+    TARGETS easyengine
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}  # 安装路径为系统的库目录
+)
+
+# 安装 easyengine 的头文件到系统的包含目录
+install(
+    DIRECTORY "include/easyengine" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}  # 安装路径为系统的包含目录
+    FILES_MATCHING PATTERN "*.h" PATTERN "*.cuh"  # 仅安装 .h 和 .cuh 文件
+)

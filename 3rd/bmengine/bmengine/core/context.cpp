@@ -612,10 +612,10 @@ static inline size_t round_up(size_t num, size_t multiple) {
 }
 
 Tensor Context::tensor(
-    const std::vector<size_t>& size,
-    DataType dtype,
-    const std::string& name,
-    size_t round_up_bytes) const {
+        const std::vector<size_t>& size,
+        DataType dtype,
+        const std::string& name,
+        size_t round_up_bytes) const {
     check_no_zero(size);
     size_t nbytes = get_numel(size) * get_elem_size(dtype);
     Tensor tensor(

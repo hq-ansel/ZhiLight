@@ -435,14 +435,15 @@ template<typename T>
 static inline __device__ void softmax_mask_block(
     float* reduce_buffer,
     float* smem,                         // (len_buf)
-    const int8_t* __restrict__ mask,     // (len_buf)
+    const int8_t* __restrict__ mask,     // (len_buf) // 位置偏置数组，形状为(len_buf)。可选参数，如果存在则加到softmax计算中。
     const T* __restrict__ position_bias, // (len_buf)
     float scale,
     int len_buf,
-    T* data = nullptr,
+    T* data = nullptr, // 可选的输出数据指针，若非空，则将最终结果写入data。
     int len_sys = 0,
     float* local_max_out = nullptr,
     float* local_sum_out = nullptr) {
+        // ldg 从全局内存读取数据到缓存
     if (data) {
         for (int i = threadIdx.x; i < len_buf; i += blockDim.x) {
             smem[i] = __ldg(mask + i) ? float(data[i]) * scale : -functions::Inf<float>();
@@ -889,8 +890,9 @@ static __global__ void KERNEL_mqa_combine(
     const int DIM_HEAD = blockDim.x;
     if (buf_lens[blockIdx.y] <= NO_SPLIT)
         return;
+    // 计算当前线程处理的head索引h。
     int h = blockIdx.y * gridDim.x + blockIdx.x;
-    int laneId = threadIdx.x % WARP_SIZE;
+    int laneId = threadIdx.x % WARP_SIZE; // warp 内的线程id
     float local_max = -1e20;
     float local_sum_exp = 0.;
     if (laneId < num_split) {
@@ -901,6 +903,7 @@ static __global__ void KERNEL_mqa_combine(
     global_max = __shfl_sync(0xFFFFFFFF, global_max, 0);
     float scale1 = laneId < num_split ? expf(local_max - global_max) : 0.;
     float local_sum_exp2 = local_sum_exp * scale1;
+    // 执行warp内的求和操作，并广播结果给所有线程。
     float global_sum_exp = functions::warpReduceSum<float>(local_sum_exp2);
     global_sum_exp = __shfl_sync(0xFFFFFFFF, global_sum_exp, 0);
     float scale2 = local_sum_exp / global_sum_exp * scale1;

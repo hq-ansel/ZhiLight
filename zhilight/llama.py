@@ -131,9 +131,9 @@ class LLaMA:
         self._init_tokenizer(model_path, tokenizer)
 
         # only support 16bit
-        # if self._config.get("torch_dtype", "") == "float32":
-        #     self._config["dtype"] = "float32"   
-        #     print("force float32 to float16")
+        if self._config.get("torch_dtype", "") == "float32":
+            self._config["torch_dtype"] = "float16"   
+            print("force float32 to float16")
 
         c_config = C.ModelConfig(self._config)
         c_quant_config = quant_config_to_c(self._quant_config)
