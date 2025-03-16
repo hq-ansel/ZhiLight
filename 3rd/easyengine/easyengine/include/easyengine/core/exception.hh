@@ -1,5 +1,5 @@
 #pragma once
-#include "easyengine/core/export.h"
+#include "easyengine/core/export.hh"
 #include <iostream>
 #include <stdexcept>
 #include <cuda_runtime.h>

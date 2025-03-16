@@ -69,6 +69,7 @@
         "typeinfo": "cpp",
         "valarray": "cpp",
         "variant": "cpp",
-        "__debug": "cpp"
+        "__debug": "cpp",
+        "stack": "cpp"
     }
 }

@@ -255,7 +255,6 @@ struct SegmentRange {
   SegmentRange(void* p, size_t s) : ptr(static_cast<char*>(p)), size(s) {}
 };
 
-#if !defined(USE_ROCM) && defined(PYTORCH_C10_DRIVER_API_SUPPORTED)
 
 /*
 Note [Expandable Segments]
@@ -644,40 +643,7 @@ struct ExpandableSegment {
   // to the device where the physical memory lives (device_).
   std::vector<c10::DeviceIndex> peers_;
 };
-#else
-struct ExpandableSegment {
-  ExpandableSegment(
-      c10::DeviceIndex device,
-      std::optional<cudaStream_t> stream,
-      size_t address_space_size,
-      size_t segment_size,
-      std::vector<c10::DeviceIndex> peers) {
-    TORCH_INTERNAL_ASSERT(false, "expandable segment not supported");
-  }
-  SegmentRange map(SegmentRange range) {
-    return SegmentRange(nullptr, 0);
-  }
-  SegmentRange unmap(SegmentRange range) {
-    return SegmentRange(nullptr, 0);
-  }
-  SegmentRange share(SegmentRange range, std::ostream& ss) {
-    return SegmentRange(nullptr, 0);
-  }
-  static std::unique_ptr<ExpandableSegment> fromShared(
-      c10::DeviceIndex device,
-      std::vector<c10::DeviceIndex> peers,
-      std::istream& buf) {
-    return {};
-  }
-  char* ptr() const {
-    return nullptr;
-  }
-  size_t size() const {
-    return 0;
-  }
-  void addPeer(c10::DeviceIndex device) {}
-};
-#endif
+
 
 // BlockState, BlockPoolState, and PrivatePoolState contain the information
 // needed to reconstruct a private pool to a previous state. See note
@@ -972,7 +938,7 @@ class RingBuffer {
 } // namespace Native
 
 static std::string reportProcessMemoryInfo(c10::DeviceIndex device) {
-#ifdef PYTORCH_C10_DRIVER_API_SUPPORTED
+
   void* nvml_handle = DriverAPI::get_nvml_handle();
   if (!nvml_handle) {
     return "";
@@ -1023,9 +989,7 @@ static std::string reportProcessMemoryInfo(c10::DeviceIndex device) {
     ss << " has " << format_size(proc.usedGpuMemory) << " memory in use. ";
   }
   return ss.str();
-#else
-  return "";
-#endif
+
 }
 
 namespace Native {
