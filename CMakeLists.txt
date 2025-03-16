@@ -102,8 +102,8 @@ message(STATUS "CMAKE_INSTALL_RPATH: ${CMAKE_INSTALL_RPATH}")
 # 包含自定义的 bmengine CMake 配置
 include(bmengine)
 
-# 添加子目录 "3rd/bmengine"，通常包含第三方库的构建和配置
-add_subdirectory(3rd/bmengine)
+# 添加子目录 "csrc/bmengine"，通常包含第三方库的构建和配置
+add_subdirectory(csrc/bmengine)
 
 # 使用 Python 获取 pybind11 的 CMake 目录，并存储在 pybind11_DIR 变量中
 execute_process(
@@ -140,8 +140,8 @@ message("FLASH_ATTN_SO: " ${FLASH_ATTN_SO})
 # 设置 backend 库的包含目录，供编译时使用
 target_include_directories(backend
     PUBLIC "src"                                      # 项目 src 目录
-    PUBLIC "3rd/tensorrt_llm/"                        # 第三方 TensorRT LLm 目录
-    PUBLIC "3rd/flash_decoding"                       # 第三方 Flash Decoding 目录
+    PUBLIC "csrc/tensorrt_llm/"                        # 第三方 TensorRT LLm 目录
+    PUBLIC "csrc/flash_decoding"                       # 第三方 Flash Decoding 目录
     PUBLIC ${NCCL_INCLUDE_DIRS}                       # NCCL 包含目录
     PUBLIC ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}  # CUDA 工具包包含目录
     PUBLIC ${Python_SITELIB}/torch/include              # PyTorch 包含目录
@@ -149,7 +149,7 @@ target_include_directories(backend
 
 # 设置 backend 库的链接目录，供链接时查找库文件
 target_link_directories(backend
-    PUBLIC "3rd/tensorrt_llm/"                        # 第三方 TensorRT LLm 库目录
+    PUBLIC "csrc/tensorrt_llm/"                        # 第三方 TensorRT LLm 库目录
     PUBLIC ${NCCL_LIBRARIES}                          # NCCL 库目录
     PUBLIC ${Python_SITELIB}/torch/lib                  # PyTorch 库目录
     PUBLIC ${Python_SITELIB}                          # Python 库目录
