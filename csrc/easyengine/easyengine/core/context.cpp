@@ -32,11 +32,13 @@ namespace core {
 
 using std::string;
 
+class ContextImpl;
+
 static inline int get_int_env(const char* name, int def_val = 0) {
     char* env_str = std::getenv(name);
     return env_str != nullptr ? std::atoi(env_str) : def_val;
 }
-
+// 构造函数需要传入engine，devices，rank，aux
 ContextImpl::ContextImpl(EngineImpl* engine, const std::vector<int>& devices, int rank, bool aux)
     : engine(engine),
       active_device(-1),
@@ -48,6 +50,7 @@ ContextImpl::ContextImpl(EngineImpl* engine, const std::vector<int>& devices, in
       debug(0),
       tensor_id(0L),
       aux_(aux) {
+        // why 8?
     tensor_cache.resize(8);
     debug = get_int_env("EZ_DEBUG_LEVEL");
 
@@ -56,7 +59,7 @@ ContextImpl::ContextImpl(EngineImpl* engine, const std::vector<int>& devices, in
         DeviceHandles* dev_handle = engine->get_device_handle(dev_id);
         dev_handles.push_back(dev_handle);
         if (aux) {
-            BM_ASSERT(false, "");
+            EZ_ASSERT(false, "");
 //            auto org_alloc = engine->get_allocator(dev_id);
 //            auto free_mem = org_alloc->get_memory_limit() - org_alloc->used_memory();
 //            auto new_alloc = new MemoryAllocator(*org_alloc, free_mem / 2, dev_handle->stream);
@@ -166,10 +169,10 @@ void ContextImpl::print_events() {
     try {
         cudaDeviceProp deviceProp;
         int dev_id = engine->get_device_handle(devices[0])->dev_id;
-        BM_CUDART_ASSERT(cudaGetDeviceProperties(&deviceProp, dev_id));
+        EZ_CUDART_ASSERT(cudaGetDeviceProperties(&deviceProp, dev_id));
         std::cout << "#### " << engine->num_gpus() << " x GPU: " << deviceProp.name
                   << " CC: " << deviceProp.major << "." << deviceProp.minor << " ####" << std::endl;
-        BM_CUDART_ASSERT(cudaDeviceSynchronize());
+        EZ_CUDART_ASSERT(cudaDeviceSynchronize());
 
         int timeline_fmt = get_int_env("TIMELINE_FORMAT", 0);
         if (timeline_fmt == 2) {
@@ -206,7 +209,7 @@ void ContextImpl::print_events() {
                     break;
                 }
             }
-            BM_ASSERT(!has_start || found_end, events[i].name);
+            EZ_ASSERT(!has_start || found_end, events[i].name);
             if (!found_end) {
                 // time from start to next
                 cudaEventElapsedTime(&elapsed_ms, events[i].ev, events[i + 1].ev);
@@ -276,25 +279,25 @@ void ContextImpl::check_in_same_thread() {
 //    if (thread_id != std::this_thread::get_id()) {
 //        std::cerr << "Context expPid=" << pid_ << ", real pid=" << _get_tid() << "\n";
 //    }
-    BM_ASSERT(thread_id == std::this_thread::get_id(), "Use context in different thread");
+    EZ_ASSERT(thread_id == std::this_thread::get_id(), "Use context in different thread");
 }
 
 void ContextImpl::use_device(int dev_id) {
     check_in_same_thread();
-    BM_ASSERT(dev_id >= 0 && dev_id < devices.size(), "Invalid dev_id:" + std::to_string(dev_id));
-    BM_ASSERT(
+    EZ_ASSERT(dev_id >= 0 && dev_id < devices.size(), "Invalid dev_id:" + std::to_string(dev_id));
+    EZ_ASSERT(
         active_device == -1,
         "Previous device " + std::to_string(active_device) + " is not released");
     active_device = dev_id;
     if (!aux_)
         engine->alloc_device(devices[dev_id]);
     else
-        BM_CUDART_ASSERT(cudaSetDevice(devices[dev_id]));
+        EZ_CUDART_ASSERT(cudaSetDevice(devices[dev_id]));
 }
 
 void ContextImpl::release_device() {
     check_in_same_thread();
-    BM_ASSERT(active_device != -1, "No device is active");
+    EZ_ASSERT(active_device != -1, "No device is active");
     if (!aux_)
         engine->release_device(devices[active_device]);
     active_device = -1;
@@ -310,8 +313,8 @@ void ContextImpl::push_device(int idx) {
     }
     if (active_device != idx) {
         if (active_device != -1) {
-            // BM_CUDART_ASSERT(cudaStreamSynchronize(current_stream()->ptr));
-            // BM_CUDART_ASSERT(cudaGetLastError());
+            // EZ_CUDART_ASSERT(cudaStreamSynchronize(current_stream()->ptr));
+            // EZ_CUDART_ASSERT(cudaGetLastError());
             release_device();
         }
         use_device(idx);
@@ -319,7 +322,7 @@ void ContextImpl::push_device(int idx) {
 }
 void ContextImpl::pop_device() {
     check_in_same_thread();
-    BM_ASSERT(!old_dev_stack.empty(), "old_dev_stack.empty()");
+    EZ_ASSERT(!old_dev_stack.empty(), "old_dev_stack.empty()");
     int idx = old_dev_stack.top();
     if (debug >= 2) {
         std::cerr << "Pop " << active_device << ", " << idx << std::endl;
@@ -328,8 +331,8 @@ void ContextImpl::pop_device() {
     new_dev_stack.pop();
     if (active_device != idx) {
         if (active_device != -1) {
-            // BM_CUDART_ASSERT(cudaStreamSynchronize(current_stream()->ptr));
-            // BM_CUDART_ASSERT(cudaGetLastError());
+            // EZ_CUDART_ASSERT(cudaStreamSynchronize(current_stream()->ptr));
+            // EZ_CUDART_ASSERT(cudaGetLastError());
             release_device();
         }
         if (idx != -1) {
@@ -338,21 +341,21 @@ void ContextImpl::pop_device() {
     }
 }
 DeviceHandles* ContextImpl::cur_dev_handle() const {
-    BM_ASSERT(active_device != -1, "No device is active");
+    EZ_ASSERT(active_device != -1, "No device is active");
     return dev_handles[active_device];
 }
 MemoryAllocator* ContextImpl::get_allocator() const {
-    BM_ASSERT(active_device != -1, "No device is active");
+    EZ_ASSERT(active_device != -1, "No device is active");
     auto allocator = allocators[active_device];
     if (use_cache_alloc_) {
-        BM_ASSERT(!cache_allocators.empty(), "");
+        EZ_ASSERT(!cache_allocators.empty(), "");
         allocator = cache_allocators.top();
     }
     return allocator;
 }
 
 int ContextImpl::current_device() {
-    BM_ASSERT(active_device != -1, "No device is active");
+    EZ_ASSERT(active_device != -1, "No device is active");
     return devices[active_device];
 }
 int ContextImpl::rank() {
@@ -369,14 +372,14 @@ Stream ContextImpl::current_stream() {
         cur_dev_handle()->stream, [](cudaStream_t) {});
 }
 void ContextImpl::set_current_stream(Stream s) {
-    BM_ASSERT(active_device != -1, "No device is active");
+    EZ_ASSERT(active_device != -1, "No device is active");
     cur_dev_handle()->stream = s->ptr;
 }
 ncclComm_t ContextImpl::current_comm() {
     return cur_dev_handle()->comm;
 }
 Stream ContextImpl::get_stream() {
-    BM_ASSERT(active_device != -1, "No device is active");
+    EZ_ASSERT(active_device != -1, "No device is active");
     int dev_id = devices[active_device];
     cudaStream_t stream = engine->create_stream(dev_id);
     return std::make_shared<Stream_>(
@@ -406,7 +409,7 @@ Memory ContextImpl::alloc(size_t nbytes, size_t round_up_bytes) {
 void ContextImpl::init_parameter(const std::string& name, Tensor* tensor) const {
     return engine->init_parameter(name, tensor);
 }
-
+// 将tensor移动到当前contextImpl的device上
 const Tensor* ContextImpl::identity(const Tensor* tensor, const std::string& name) {
     std::map<long, TensorPtr>& map = tensor_cache[active_device];
     auto search = map.find(tensor->id());
@@ -426,13 +429,14 @@ const Tensor* ContextImpl::identity(const Tensor* tensor, const std::string& nam
     }
     if (engine->get_device_handle(srcDevice)->dev_id
         == engine->get_device_handle(dstDevice)->dev_id) {
-        BM_CUDART_ASSERT(cudaMemcpyAsync(
+        EZ_CUDART_ASSERT(cudaMemcpyAsync(
             mem->ptr, tensor->data(), nbytes, cudaMemcpyDeviceToDevice, current_stream()->ptr));
     } else {
-        BM_CUDART_ASSERT(cudaMemcpyPeer(mem->ptr, dstDevice, tensor->data(), srcDevice, nbytes));
+        EZ_CUDART_ASSERT(cudaMemcpyPeer(mem->ptr, dstDevice, tensor->data(), srcDevice, nbytes));
     }
-    //    BM_CUDART_ASSERT(cudaDeviceSynchronize());
-    //    BM_CUDART_ASSERT(cudaStreamSynchronize(current_stream()->ptr));
+    //    EZ_CUDART_ASSERT(cudaDeviceSynchronize());
+    //    EZ_CUDART_ASSERT(cudaStreamSynchronize(current_stream()->ptr));
+    // 为什么可以不经过allocat分配内存？
     Tensor* new_tensor =
         new Tensor(std::make_unique<TensorImpl>(tensor->size(), mem, 0, tensor->dtype()));
     new_tensor->set_name(name);
@@ -447,7 +451,7 @@ Tensor ContextImpl::copy(const Tensor& tensor) {
 
     size_t nbytes = tensor.nbytes();
     Memory mem = this->alloc(nbytes);
-    BM_CUDART_ASSERT(cudaMemcpyAsync(
+    EZ_CUDART_ASSERT(cudaMemcpyAsync(
         mem->ptr, tensor.data(), nbytes, cudaMemcpyDeviceToDevice, current_stream()->ptr));
     return std::move(
         Tensor(std::make_unique<TensorImpl>(tensor.size(), mem, 0, tensor.dtype())));
@@ -464,12 +468,12 @@ void Context::assign_or_copy(Tensor* dst, const Tensor* src) const {
         *dst = *src;
         return;
     }
-    BM_ASSERT_EQ(src->shape(), dst->shape(), "src and dst have different shape");
+    EZ_ASSERT_EQ(src->shape(), dst->shape(), "src and dst have different shape");
     // if (src->data() == DataType::kHalf && dst->dtype() == DataType::kFloat) 
     //     src = &(src->view_type())
     // TODO: 计划解决强制类型转换的问题
     if (src->dtype() != DataType::kInt16)
-        BM_ASSERT_EQ(src->dtype(), dst->dtype(), "src and dst have different dtype");
+        EZ_ASSERT_EQ(src->dtype(), dst->dtype(), "src and dst have different dtype");
     // allocate memory
     if (dst->data() == nullptr) {
         init_parameter(dst->name(), dst);
@@ -534,7 +538,7 @@ bool Context::switch_to_device(int idx) const {
     }
     if (pimpl->active_device != -1) {
         std::cout << "WARNING active_device != -1\n";
-        BM_CUDART_ASSERT(cudaStreamSynchronize(current_stream()->ptr));
+        EZ_CUDART_ASSERT(cudaStreamSynchronize(current_stream()->ptr));
         pimpl->release_device();
     }
     pimpl->use_device(idx);
@@ -613,14 +617,14 @@ static inline size_t round_up(size_t num, size_t multiple) {
 }
 
 Tensor Context::tensor(
-        const std::vector<size_t>& size,
+        const std::vector<size_t>& shape,
         DataType dtype,
         const std::string& name,
         size_t round_up_bytes) const {
-    check_no_zero(size);
-    size_t nbytes = get_numel(size) * get_elem_size(dtype);
+    check_no_zero(shape);
+    size_t nbytes = get_numel(shape) * get_elem_size(dtype);
     Tensor tensor(
-        std::make_unique<TensorImpl>(size, pimpl->alloc(nbytes, round_up_bytes), 0, dtype));
+        std::make_unique<TensorImpl>(shape, pimpl->alloc(nbytes, round_up_bytes), 0, dtype));
     tensor.set_id(std::atomic_fetch_add(&pimpl->tensor_id, 1L));
     tensor.set_name(name);
     if (pimpl->debug >= 6) {
@@ -642,16 +646,16 @@ Tensor Context::null_tensor() const {
     return std::move(Tensor());
 }
 
-Tensor Context::parameter(const std::vector<size_t>& size, DataType dtype) const {
-    check_no_zero(size);
-    size_t nbytes = get_numel(size) * get_elem_size(dtype);
+Tensor Context::parameter(const std::vector<size_t>& shape, DataType dtype) const {
+    check_no_zero(shape);
+    size_t nbytes = get_numel(shape) * get_elem_size(dtype);
     return Tensor(std::make_unique<TensorImpl>(
-        size,
+        shape,
         std::make_shared<Memory_>(
             nullptr,
             pimpl->current_device(),
             nbytes,
-            [](void* ptr) { BM_ASSERT(ptr == nullptr, "Memory is not nullptr"); }),
+            [](void* ptr) { EZ_ASSERT(ptr == nullptr, "Memory is not nullptr"); }),
         0,
         dtype));
 }
@@ -659,14 +663,14 @@ Tensor Context::parameter(const std::vector<size_t>& size, DataType dtype) const
 Tensor Context::distribute_parameter(const Tensor& param, DistLayout layout) const {
     auto shape = param.shape();
     int shard_dim = shape.size() - (layout == DistLayout::ROW ? 2 : 1);
-    BM_ASSERT(shape[shard_dim] % world_size() == 0, "size can't be divided by world_size");
+    EZ_ASSERT(shape[shard_dim] % world_size() == 0, "size can't be divided by world_size");
     int shard_len = shape[shard_dim] / world_size();
 
     Tensor local = param;
     if (rank() != 0) {
         local = tensor(param.shape(), param.dtype());
     }
-    BM_NCCL_ASSERT(ncclBroadcast(
+    EZ_NCCL_ASSERT(ncclBroadcast(
         param.data<void*>(),
         local.mutable_data<void*>(),
         local.numel(),
@@ -699,13 +703,13 @@ void Context::load_parameter(
     bool parallel,
     DistLayout layout) const {
     auto it = state_dict.find(name);
-    BM_ASSERT(it != state_dict.end(), "param " + name + " not found in state_dict");
+    EZ_ASSERT(it != state_dict.end(), "param " + name + " not found in state_dict");
     auto& param = it->second;
     static bool print_param = std::getenv("PRINT_LOAD_PARAM") != nullptr;
     if (print_param) {
         std::cout << "Load " << name << ", shape=" << weight->shape() << ", srcShape=" << param.shape() << endl;
     }
-    BM_ASSERT_EQ(weight->shape(), param.shape(), name +" shape mismatch");
+    EZ_ASSERT_EQ(weight->shape(), param.shape(), name +" shape mismatch");
 //    if (get_compute_capability() == 80) {
 //        if (rank() == 0)
 //            assign_or_copy(weight, &param);
@@ -719,7 +723,7 @@ void Context::load_parameter(
     }
     auto shape = weight->shape();
     size_t shard_dim = shape.size() - (layout == DistLayout::ROW ? 2 : 1);
-    BM_ASSERT(shape[shard_dim] % world_size() == 0, "size can't be divided by world_size");
+    EZ_ASSERT(shape[shard_dim] % world_size() == 0, "size can't be divided by world_size");
     shape[shard_dim] /= world_size();
     size_t shard_len = shape[shard_dim];
     *weight = tensor(shape, weight->dtype());
@@ -731,7 +735,7 @@ void Context::load_parameter(
         assign_or_copy(weight, &part);
         return;
     }
-    BM_ASSERT_EQ(weight->ndim(), 2, "Unsupported ndim");
+    EZ_ASSERT_EQ(weight->ndim(), 2, "Unsupported ndim");
 
     // case 2: COLUMN layout, slice column in CPU, then copy
     thread_local char* buf = nullptr;
@@ -739,7 +743,7 @@ void Context::load_parameter(
     bool use_pin_buf = getenv("USE_PIN_BUF");
     if (use_pin_buf) {
         if (buf_size < weight->nbytes())
-            BM_CUDART_ASSERT(cudaHostAlloc(&buf, weight->nbytes(), 0));
+            EZ_CUDART_ASSERT(cudaHostAlloc(&buf, weight->nbytes(), 0));
         buf_size = weight->nbytes();
     } else {
         buf = new char[weight->nbytes()];
@@ -757,7 +761,8 @@ void Context::load_parameter(
     if (!use_pin_buf)
         delete[] buf;
 }
-
+// 无语了，谁设计的函数？ 
+// 用于将tensor移动到当前的ctx对应的device上，如果tensor已经在当前device上，则不做任何操作。
 const Tensor* Context::identity(const Tensor* tensor, const std::string& name) const {
     if (tensor == nullptr) {
         return nullptr;
@@ -815,29 +820,30 @@ void Context::enable_debug(int level) const {
 int Context::debug() const {
     return pimpl->debug;
 }
-
+// 设备级别的reduce?
 Tensor Context::reduce_sum(Tensor& data, DataType out_type) const {
-    BM_CUDART_ASSERT(cudaDeviceSynchronize());
+    EZ_CUDART_ASSERT(cudaDeviceSynchronize());
     c10d::NCCLAllReduce(*this, data, data, ncclSum);  // reduce in-place
-    BM_CUDART_ASSERT(cudaDeviceSynchronize());
+    EZ_CUDART_ASSERT(cudaDeviceSynchronize());
     return functions::typecast(*this, data, out_type);
 }
 
 Tensor Context::cuda(const Tensor& cpu_tensor) const {
-    BM_ASSERT_EQ(cpu_tensor.device(), -1, "Not a cpu tensor");
+    EZ_ASSERT_EQ(cpu_tensor.device(), -1, "Not a cpu tensor");
     Tensor out = this->tensor(cpu_tensor.shape(), cpu_tensor.dtype());
     out.set_name(cpu_tensor.name());
     out.from_buffer(cpu_tensor.data());
     return out;
 }
 
-void ContextImpl::reserve_cache_alloc(size_t s) {
-    BM_ASSERT_EQ(1, devices.size() == 1, "TP only");
+// 
+void ContextImpl::reserve_cache_alloc(size_t new_size) {
+    EZ_ASSERT_EQ(1, devices.size() == 1, "TP only");
     auto alloc =  allocators[0];
     auto stream = engine->get_device_handle(devices[0])->stream;
-    cache_allocators.push(new MemoryAllocator(*alloc, s, stream));
+    cache_allocators.push(new MemoryAllocator(*alloc, new_size, stream));
 
-//    BM_ASSERT(cache_allocators.empty(), "reserve_cache_alloc called twice");
+//    EZ_ASSERT(cache_allocators.empty(), "reserve_cache_alloc called twice");
 //    for (size_t i = 0; i < devices.size(); ++i) {
 //        auto alloc =  allocators[i];
 //        auto stream = engine->get_device_handle(devices[i])->stream;
@@ -845,8 +851,8 @@ void ContextImpl::reserve_cache_alloc(size_t s) {
 //    }
 }
 void ContextImpl::free_cache_alloc() {
-    BM_ASSERT_EQ(1, devices.size() == 1, "TP only");
-    BM_ASSERT(!cache_allocators.empty(), "");
+    EZ_ASSERT_EQ(1, devices.size() == 1, "TP only");
+    EZ_ASSERT(!cache_allocators.empty(), "");
     delete cache_allocators.top();
     cache_allocators.pop();
 }
@@ -857,12 +863,12 @@ void Context::free_cache_alloc() {
     pimpl->free_cache_alloc();
 }
 void Context::use_cache_alloc(bool b) {
-    BM_ASSERT(!b || !pimpl->cache_allocators.empty(), "No cache allocators");
+    EZ_ASSERT(!b || !pimpl->cache_allocators.empty(), "No cache allocators");
     pimpl->use_cache_alloc_ = b;
 }
 
 void Context::mem_gc() {
-    BM_ASSERT_EQ(1, pimpl->devices.size() == 1, "TP only");
+    EZ_ASSERT_EQ(1, pimpl->devices.size() == 1, "TP only");
     pimpl->allocators[0]->defragmentation();
 }
 

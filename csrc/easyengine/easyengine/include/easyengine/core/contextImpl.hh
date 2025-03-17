@@ -28,9 +28,10 @@ private:
         std::string name;
         float flops;
     };
-
+    // 当前的cuda_id
     int active_device;
     EngineImpl* engine;
+    // 所有的cuda_id
     std::vector<int> devices;
     int rank_;
     size_t used_memory;
@@ -43,6 +44,8 @@ private:
     int pid_ { 0 };
 
     typedef std::unique_ptr<Tensor> TensorPtr;
+    // 这个是用来干什么的？每个设备可以放很多的tensor?
+    // cuda_id -> Tensor_ptr:unique_ptr<Tensor> 
     std::vector<std::map<long, TensorPtr>> tensor_cache;
 
     int debug;                   // debug level

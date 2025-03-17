@@ -17,6 +17,7 @@ class Context;
 class MemoryAllocator;
 class DataType;
 
+// {device_id, memory_limit}
 struct DeviceConfiguration {
     int device_id;
     size_t memory_limit;
@@ -24,7 +25,7 @@ struct DeviceConfiguration {
     DeviceConfiguration(int device_id, size_t memory_limit)
         : device_id(device_id), memory_limit(memory_limit) { }
 };
-
+// {real_device_idx, compute_capability, total_memory, free_memory, alloc_memory}
 struct GPUInfo {
     int real_device_idx;
     int compute_capability;
@@ -33,6 +34,7 @@ struct GPUInfo {
     size_t alloc_memory;
 };
 
+// {device_id, stream, cublas_handle, comm, rank, compute_capability, mp_count, l2_cache_size, max_shared_memory}
 class DeviceHandles {
 public:
     int dev_id;
@@ -55,6 +57,7 @@ public:
 
 class Tensor;
 class Context;
+// {handles, allocators, streams, device_lock, device_threads, uniqueIDs, world_size, debug, is_mem_frozen,log_mutex}
 class EngineImpl {
     friend class Engine;
     std::vector<DeviceHandles*> handles;
