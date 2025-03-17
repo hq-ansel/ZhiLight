@@ -13,6 +13,6 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     endif()
 endif()
 
-if(NOT EXISTS "${PROJECT_SOURCE_DIR}/3rd/bmengine/CMakeLists.txt")
+if(NOT EXISTS "${PROJECT_SOURCE_DIR}/csrc/bmengine/CMakeLists.txt")
     message(FATAL_ERROR "The submodules were not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
 endif()
