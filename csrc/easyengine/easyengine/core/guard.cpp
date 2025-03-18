@@ -1,9 +1,8 @@
-#include "bmengine/core/context.h"
-#include "bmengine/core/guard.h"
+#include "easyengine/core/context.hh"
+#include "easyengine/core/guard.hh"
 #include <iostream>
-#include "private/context.h"
 
-namespace bmengine {
+namespace easyengine {
 
 namespace core {
 
@@ -47,4 +46,4 @@ WithDebug::WithDebug(WithDebug&& other) : ctx(other.ctx), previous_level(other.p
 
 } // namespace core
 
-} // namespace bmengine
+} // namespace easyengine

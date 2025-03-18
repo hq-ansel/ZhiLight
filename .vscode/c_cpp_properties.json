@@ -6,7 +6,8 @@
                 "${workspaceFolder}/**",
                 "/home/ubuntu/data/exp/ZhiLight/csrc/easyengine/easyengine/include",
                 "/home/ubuntu/data/exp/ZhiLight/.venv/lib64/python3.12/site-packages/nvidia/cublas/include",
-                "/home/ubuntu/data/exp/ZhiLight/csrc/easyengine/easyengine/include/3rd"
+                "/home/ubuntu/data/exp/ZhiLight/csrc/easyengine/easyengine/include/3rd",
+                "/home/ubuntu/data/exp/ZhiLight/.venv/lib/python3.12/site-packages/cupy/_core/include/cupy/_cccl/libcudacxx"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/g++",

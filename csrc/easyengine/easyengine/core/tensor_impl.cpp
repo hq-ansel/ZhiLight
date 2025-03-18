@@ -1,11 +1,11 @@
-#include "bmengine/core/tensor.h"
-#include "private/memory.h"
-#include "private/tensor_impl.h"
-#include "bmengine/core/exception.h"
+#include "easyengine/core/tensor.hh"
+#include "easyengine/core/memory.hh"
+#include "easyengine/core/tensor_impl.hh"
+#include "easyengine/core/exception.hh"
 #include <map>
 #include <sstream>
 
-namespace bmengine {
+namespace easyengine {
 namespace core {
 
 size_t get_elem_size(DataType dtype) {
@@ -40,13 +40,13 @@ size_t get_numel(const std::vector<size_t>& size) {
 using std::to_string;
 void check_no_zero(const std::vector<size_t>& size) {
     for (size_t i = 0; i < size.size(); i++) {
-        BM_ASSERT(size[i] > 0,"Invalid tensor size[" + to_string(i) + "]=" + to_string(size[i]));
+        EZ_ASSERT(size[i] > 0,"Invalid tensor size[" + to_string(i) + "]=" + to_string(size[i]));
     }
 }
 
 int TensorImpl::normalize_dim(int dim) const {
     dim = dim < 0 ? ndim() + dim : dim;
-    BM_ASSERT(dim >= 0 && dim < ndim(),"Dim out of range: " + to_string(dim) + ">=" + to_string(ndim()));
+    EZ_ASSERT(dim >= 0 && dim < ndim(),"Dim out of range: " + to_string(dim) + ">=" + to_string(ndim()));
     return dim;
 }
 
@@ -77,8 +77,9 @@ void* TensorImpl::nullable_data() const {
     }
 }
 void TensorImpl::check_mem() const {
-    BM_ASSERT(mem != nullptr, "Tensor is empty");
+    EZ_ASSERT(mem != nullptr, "Tensor is empty");
 }
+// 得到数据的尾部地址
 void* TensorImpl::mutable_data() {
     check_mem();
     if (mem->ptr != nullptr) {
@@ -100,13 +101,13 @@ int TensorImpl::device() const {
 
 std::unique_ptr<TensorImpl> TensorImpl::view_type(const std::vector<size_t>& size, DataType dtype, bool check_size) const {
     // TODO: check continuous
-    BM_ASSERT(numel() > 0, "Tensor is empty");
+    EZ_ASSERT(numel() > 0, "Tensor is empty");
     size_t total_size = 1;
     for (auto s : size) {
         total_size *= s;
     }
     if (check_size) {
-        BM_ASSERT_EQ(total_size * get_elem_size(dtype), nbytes_, "Tensor size mismatch");
+        EZ_ASSERT_EQ(total_size * get_elem_size(dtype), nbytes_, "Tensor size mismatch");
     }
     return std::move(std::make_unique<TensorImpl>(size, mem, offset, dtype));
 }
@@ -121,13 +122,13 @@ std::unique_ptr<TensorImpl> TensorImpl::view_unchecked(const std::vector<size_t>
 
 std::vector<std::unique_ptr<TensorImpl>> TensorImpl::chunk() const {
     std::vector<std::unique_ptr<TensorImpl>> chunks;
-    BM_ASSERT(numel() > 0, "Tensor is empty");
-    BM_ASSERT(ndim() > 1, "Tensor must be 2D or larger");
+    EZ_ASSERT(numel() > 0, "Tensor is empty");
+    EZ_ASSERT(ndim() > 1, "Tensor must be 2D or larger");
     auto new_size = size();
     new_size.erase(new_size.begin());
     size_t n_offset = offset;
     for (int i = 0; i < shape_[0]; ++i) {
-        BM_ASSERT(
+        EZ_ASSERT(
             (n_offset - offset + stride_bytes(0)) <= nbytes(),
             "chunk overflow:" + std::to_string(n_offset - offset) + "/"
                 + std::to_string(stride_bytes(0)) + "/" + std::to_string(nbytes()));
@@ -152,8 +153,8 @@ std::unique_ptr<TensorImpl> TensorImpl::slice_dim0(size_t from, size_t to) const
 std::unique_ptr<TensorImpl> TensorImpl::virtual_slice(
     size_t from, size_t len, int dim) const {
     dim = normalize_dim(dim);
-    BM_ASSERT_EQ(dim, ndim() - 1, "Support only last dim");
-    BM_ASSERT_LE(from + len, size(dim), "Out of ramge");
+    EZ_ASSERT_EQ(dim, ndim() - 1, "Support only last dim");
+    EZ_ASSERT_LE(from + len, size(dim), "Out of ramge");
     auto new_size = size();
     new_size[dim] = len;
     auto ret = std::make_unique<TensorImpl>(
@@ -210,4 +211,4 @@ TensorImpl::TensorImpl(
 }
 
 } // namespace core
-} // namespace bmengine
+} // namespace easyengine

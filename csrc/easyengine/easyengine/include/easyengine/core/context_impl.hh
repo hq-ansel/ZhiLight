@@ -41,6 +41,7 @@ private:
     std::stack<int> old_dev_stack;
     std::stack<int> new_dev_stack;
     std::thread::id thread_id;
+    // 当前的ctx的id
     int pid_ { 0 };
 
     typedef std::unique_ptr<Tensor> TensorPtr;

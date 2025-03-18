@@ -37,7 +37,12 @@ void NCCLCheckAsync(ncclComm_t comm) {
     } while (state == ncclInProgress);
     EZ_NCCL_ASSERT(state);
 }
-
+/*
+* NCCLAllReduce 函数：使用 NCCL（NVIDIA Collective Communications Library）执行 AllReduce 操作。
+* AllReduce 是一种并行计算中常用的通信操作，它将所有参与进程的数据进行规约（如求和、最大值等），
+* 并将结果广播回所有进程
+* 读取send tensor的data数据指针写入到recv tensor的mutable_data数据指针，
+*/
 void NCCLAllReduce(
     const core::Context& ctx,
     const core::Tensor& sendbuff,

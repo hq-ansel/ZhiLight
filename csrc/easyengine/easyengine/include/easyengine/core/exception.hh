@@ -164,7 +164,7 @@ public:
     } while (0)
 
 namespace easyengine {
-BMENGINE_EXPORT void backtrace(int depth);  // 输出堆栈跟踪
-BMENGINE_EXPORT void print_demangled_trace(int depth);  // 输出解构后的堆栈跟踪
-BMENGINE_EXPORT const char* cublasGetErrorString(cublasStatus_t status);  // 获取CUBLAS错误信息字符串
+ENGINE_EXPORT void backtrace(int depth);  // 输出堆栈跟踪
+ENGINE_EXPORT void print_demangled_trace(int depth);  // 输出解构后的堆栈跟踪
+ENGINE_EXPORT const char* cublasGetErrorString(cublasStatus_t status);  // 获取CUBLAS错误信息字符串
 } // namespace easyengine

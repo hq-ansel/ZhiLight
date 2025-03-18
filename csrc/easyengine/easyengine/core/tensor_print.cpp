@@ -1,13 +1,13 @@
-#include "bmengine/core/tensor.h"
-#include "bmengine/core/context.h"
-#include "bmengine/core/exception.h"
+#include "easyengine/core/tensor.hh"
+#include "easyengine/core/context.hh"
+#include "easyengine/core/exception.hh"
 #include <cuda_runtime.h>
 #include <iostream>
 #include <iomanip>
 #include <memory>
 #include <sstream>
 
-namespace bmengine {
+namespace easyengine {
 namespace core {
 
 inline float int2float(uint32_t x) {
@@ -227,7 +227,7 @@ DataType name_to_data_type(const std::string& name) {
     if (datatype_name_mapping.count(name)) {
         return datatype_name_mapping.at(name);
     }
-    BM_EXCEPTION("unknown datatype name: " + std::string(name));
+    EZ_EXCEPTION("unknown datatype name: " + std::string(name));
 }
 
 const char* get_dist_layout_name(DistLayout dist_layout) {
@@ -241,4 +241,4 @@ const char* get_dist_layout_name(DistLayout dist_layout) {
 }
 
 } // namespace core
-} // namespace bmengine
+} // namespace easyengine

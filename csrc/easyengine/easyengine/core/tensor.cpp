@@ -1,12 +1,13 @@
-#include "bmengine/core/tensor.h"
-#include "bmengine/core/context.h"
-#include "bmengine/core/exception.h"
+#include "easyengine/core/tensor.hh"
+#include "easyengine/core/tensor_impl.hh"
+#include "easyengine/core/context.hh"
+#include "easyengine/core/exception.hh"
 #include <cuda_runtime.h>
 #include <memory>
 
 #include "private/tensor_impl.h"
 
-namespace bmengine {
+namespace easyengine {
 namespace core {
 
 DistLayout transpose_layout(DistLayout dist_layout) {
@@ -38,7 +39,7 @@ Tensor& Tensor::operator=(Tensor&& other) {
 }
 
 TensorImpl* Tensor::pimpl() const {
-    BM_ASSERT(pimpl_.get(), "Tensor is empty");
+    EZ_ASSERT(pimpl_.get(), "Tensor is empty");
     return pimpl_.get();
 }
 
@@ -51,21 +52,21 @@ Tensor Tensor::view_unchecked(const std::vector<size_t>& size, DataType dtype) c
 }
 
 Tensor Tensor::view_type(const std::vector<size_t>& size, DataType dtype) const {
-    BM_ASSERT(pimpl() != nullptr, "Tensor is empty");
+    EZ_ASSERT(pimpl() != nullptr, "Tensor is empty");
     return Tensor(pimpl_->view_type(size, dtype));
 }
 
 void Tensor::from_buffer(const void* ptr, bool async) {
-    BM_CUDART_ASSERT(cudaMemcpyAsync(mutable_data(), ptr, nbytes(), cudaMemcpyHostToDevice, 0));
+    EZ_CUDART_ASSERT(cudaMemcpyAsync(mutable_data(), ptr, nbytes(), cudaMemcpyHostToDevice, 0));
     if (!async) {
-        BM_CUDART_ASSERT(cudaStreamSynchronize(0));
+        EZ_CUDART_ASSERT(cudaStreamSynchronize(0));
     }
-    BM_CUDART_ASSERT(cudaGetLastError());
+    EZ_CUDART_ASSERT(cudaGetLastError());
 }
 
 Tensor Tensor::to_device(int dev_id) const {
     // TODO combine ctx.identity() with this.
-    BM_ASSERT(false, "not implemented.");
+    EZ_ASSERT(false, "not implemented.");
     return Tensor();
 }
 
@@ -136,12 +137,12 @@ int Tensor::device() const {
 }
 
 void Tensor::to_buffer(void* ptr) const {
-    BM_CUDART_ASSERT(cudaMemcpy(ptr, data(), nbytes(), cudaMemcpyDeviceToHost));
+    EZ_CUDART_ASSERT(cudaMemcpy(ptr, data(), nbytes(), cudaMemcpyDeviceToHost));
 }
 
 std::vector<Tensor> Tensor::chunk() const {
     std::vector<Tensor> chunks;
-    BM_ASSERT(pimpl() != nullptr, "Tensor is empty");
+    EZ_ASSERT(pimpl() != nullptr, "Tensor is empty");
     auto chunk_impls = pimpl()->chunk();
     for (int i = 0; i < chunk_impls.size(); ++i) {
         chunks.emplace_back(Tensor(std::move(chunk_impls[i])));
@@ -150,13 +151,13 @@ std::vector<Tensor> Tensor::chunk() const {
 }
 
 Tensor Tensor::index_dim0(size_t i) const {
-    BM_ASSERT_LT(i, size(0), "Out of range");
+    EZ_ASSERT_LT(i, size(0), "Out of range");
     return Tensor(pimpl()->index_dim0(i));
 }
 
 Tensor Tensor::slice_dim0(size_t from, size_t to) const {
-    BM_ASSERT(from < to, "Wrong range");
-    BM_ASSERT_LE(to, size(0), "Wrong range");
+    EZ_ASSERT(from < to, "Wrong range");
+    EZ_ASSERT_LE(to, size(0), "Wrong range");
     return Tensor(pimpl()->slice_dim0(from, to));
 }
 
@@ -184,4 +185,4 @@ Tensor Tensor::from_external(
 };
 
 } // namespace core
-} // namespace bmengine
+} // namespace easyengine

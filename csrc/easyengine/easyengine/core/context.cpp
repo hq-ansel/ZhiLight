@@ -1,4 +1,5 @@
 #include "easyengine/core/context.hh"
+#include "easyengine/core/context_impl.hh"
 #include "easyengine/c10d/c10d.hh"
 #include "easyengine/core/exception.hh"
 #include "easyengine/functions/typecast.hh"
@@ -24,6 +25,10 @@
 #include <pthread.h>
 #include <sys/syscall.h>
 
+/*
+​*syscall*: 是 Linux 系统中的一个系统调用接口，用于直接调用内核提供的功能。
+​*SYS_gettid*: 是一个宏，表示 gettid 系统调用的编号。gettid 是 Linux 内核提供的一个系统调用，用于获取当前线程的唯一 ID。
+*/
 static int _get_tid() {
     return syscall(SYS_gettid);
 }
@@ -50,7 +55,7 @@ ContextImpl::ContextImpl(EngineImpl* engine, const std::vector<int>& devices, in
       debug(0),
       tensor_id(0L),
       aux_(aux) {
-        // why 8?
+    // 这个magic number应该是对应一个节点有八个GPU
     tensor_cache.resize(8);
     debug = get_int_env("EZ_DEBUG_LEVEL");
 
@@ -58,6 +63,7 @@ ContextImpl::ContextImpl(EngineImpl* engine, const std::vector<int>& devices, in
         // DeviceHandles* dev_handle = engine->get_device_handle(dev_id, aux);
         DeviceHandles* dev_handle = engine->get_device_handle(dev_id);
         dev_handles.push_back(dev_handle);
+        // 你是？
         if (aux) {
             EZ_ASSERT(false, "");
 //            auto org_alloc = engine->get_allocator(dev_id);
@@ -302,7 +308,7 @@ void ContextImpl::release_device() {
         engine->release_device(devices[active_device]);
     active_device = -1;
 }
-
+// guard需要调用这个内容
 void ContextImpl::push_device(int idx) {
     check_in_same_thread();
     old_dev_stack.push(active_device);
@@ -320,6 +326,7 @@ void ContextImpl::push_device(int idx) {
         use_device(idx);
     }
 }
+// 怎么又是devices 又是old_dev_stack？
 void ContextImpl::pop_device() {
     check_in_same_thread();
     EZ_ASSERT(!old_dev_stack.empty(), "old_dev_stack.empty()");
@@ -472,6 +479,7 @@ void Context::assign_or_copy(Tensor* dst, const Tensor* src) const {
     // if (src->data() == DataType::kHalf && dst->dtype() == DataType::kFloat) 
     //     src = &(src->view_type())
     // TODO: 计划解决强制类型转换的问题
+    // 强制类型转换的思路，建议让allocatror重新分配内存，类型转换有可能变大也有可能变小
     if (src->dtype() != DataType::kInt16)
         EZ_ASSERT_EQ(src->dtype(), dst->dtype(), "src and dst have different dtype");
     // allocate memory
@@ -615,7 +623,9 @@ static inline size_t round_up(size_t num, size_t multiple) {
 //    }
 //    size_t nbytes = numel * get_elem_size(dtype);
 }
-
+/*
+* 用法是ctx.tensor(shape, dtype, name, round_up_bytes)
+*/ 
 Tensor Context::tensor(
         const std::vector<size_t>& shape,
         DataType dtype,
