@@ -55,7 +55,7 @@ Tensor Tensor::view_type(const std::vector<size_t>& size, DataType dtype) const 
     EZ_ASSERT(pimpl() != nullptr, "Tensor is empty");
     return Tensor(pimpl_->view_type(size, dtype));
 }
-
+// 从vector.data()这样的内存指针中构造一个tensor
 void Tensor::from_buffer(const void* ptr, bool async) {
     EZ_CUDART_ASSERT(cudaMemcpyAsync(mutable_data(), ptr, nbytes(), cudaMemcpyHostToDevice, 0));
     if (!async) {

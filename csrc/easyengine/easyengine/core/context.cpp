@@ -513,7 +513,7 @@ void Context::print_events() {
 std::mutex& Context::log_mutex() const {
     return pimpl->engine->log_mutex;
 }
-
+// default initialization of tensor name
 const std::string Context::EMPTY_STR;
 
 Context::Context(std::unique_ptr<ContextImpl>&& impl) : pimpl(std::move(impl)) {
@@ -624,7 +624,7 @@ static inline size_t round_up(size_t num, size_t multiple) {
 //    size_t nbytes = numel * get_elem_size(dtype);
 }
 /*
-* 用法是ctx.tensor(shape, dtype, name, round_up_bytes)
+* 用法是ctx.tensor(shape, dtype, name=e, round_up_bytes)
 */ 
 Tensor Context::tensor(
         const std::vector<size_t>& shape,
@@ -655,7 +655,7 @@ Tensor Context::tensor_s(
 Tensor Context::null_tensor() const {
     return std::move(Tensor());
 }
-
+// 空有形状没有地址的tensor，但是绑定设备了
 Tensor Context::parameter(const std::vector<size_t>& shape, DataType dtype) const {
     check_no_zero(shape);
     size_t nbytes = get_numel(shape) * get_elem_size(dtype);
@@ -669,10 +669,13 @@ Tensor Context::parameter(const std::vector<size_t>& shape, DataType dtype) cons
         0,
         dtype));
 }
-
+// not used weired ,will this be different rank?
 Tensor Context::distribute_parameter(const Tensor& param, DistLayout layout) const {
     auto shape = param.shape();
+    // 假设 (cin,cout) layout for 2 and 1?
+    // 似乎是-1 代表其他 -2 代表主行？ shard_dim 代表的是切分的行
     int shard_dim = shape.size() - (layout == DistLayout::ROW ? 2 : 1);
+    // 不能分就开摆了？
     EZ_ASSERT(shape[shard_dim] % world_size() == 0, "size can't be divided by world_size");
     int shard_len = shape[shard_dim] / world_size();
 
@@ -680,6 +683,7 @@ Tensor Context::distribute_parameter(const Tensor& param, DistLayout layout) con
     if (rank() != 0) {
         local = tensor(param.shape(), param.dtype());
     }
+    // ncclBroadcast 把 param.data()发送到其他的rank上
     EZ_NCCL_ASSERT(ncclBroadcast(
         param.data<void*>(),
         local.mutable_data<void*>(),
@@ -691,7 +695,8 @@ Tensor Context::distribute_parameter(const Tensor& param, DistLayout layout) con
     if (layout == DistLayout::REPLICATED) {
         return local;
     }
-
+    // shard_size = cdiv(shard_dim_size,word_size)
+    // ［rank*shard_size:(rank+1)*shard_size,:,:］
     std::vector<int> gather_indices(shard_len);
     int offset = rank() * shard_len;
     for (int i = 0; i < shard_len; ++i) {
@@ -741,6 +746,7 @@ void Context::load_parameter(
 
     // case 1: ROW layout, copy directly
     if (shard_dim == 0) {
+        // slice [rank*shard_len: (rank+1)*shard_len]
         auto part = param.slice_dim0_len(rank() * shard_len, shard_len);
         assign_or_copy(weight, &part);
         return;
@@ -758,10 +764,27 @@ void Context::load_parameter(
     } else {
         buf = new char[weight->nbytes()];
     }
+    // [...,shard_len*rank,..]
+    /*
+        shard_len = cdiv(shard_dim_size,word_size)
+          shard_len word_size =2
+                              shard bytes
+                              |     |
+        [ a , b , c , d ] -> [ a , b ] [c , d ]    
+        [ a , b , c , d ] -> [ a , b ] [c , d ]    
+        [ a , b , c , d ] -> [ a , b ] [c , d ]
+        [ a , b , c , d ] -> [ a , b ] [c , d ]
+                                        |
+                                        col offset
+                               |             |
+                                  row bytes
+             concat    for i inange(num_row)  offset+i*row_bytes
+    */
     size_t shard_bytes = shard_len * get_elem_size(weight->dtype());
     size_t row_bytes = shard_bytes * world_size();
     size_t col_offset = rank() * shard_bytes;
     size_t num_row = weight->size(0);
+    // 感觉下面的内容可以异步化？
     for (int i = 0; i < num_row; ++i) {
         char* dst = buf + i * shard_bytes;
         char* src = param.data<char>() + i * row_bytes;

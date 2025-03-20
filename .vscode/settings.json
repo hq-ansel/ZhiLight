@@ -70,6 +70,7 @@
         "valarray": "cpp",
         "variant": "cpp",
         "__debug": "cpp",
-        "stack": "cpp"
+        "stack": "cpp",
+        "stream_ref": "cpp"
     }
 }

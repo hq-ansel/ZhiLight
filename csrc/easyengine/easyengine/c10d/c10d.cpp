@@ -42,6 +42,12 @@ void NCCLCheckAsync(ncclComm_t comm) {
 * AllReduce 是一种并行计算中常用的通信操作，它将所有参与进程的数据进行规约（如求和、最大值等），
 * 并将结果广播回所有进程
 * 读取send tensor的data数据指针写入到recv tensor的mutable_data数据指针，
+* ncclAllReduce的用法 ncclAllReduce(sendbuff,recvbuff,numel,dtype,op,comm,stream)
+*  rank[0]      rank[1]     rank[2]     rank[3]
+*  0            1           2           3
+*  after AllReduce:
+*  rank[0]      rank[1]     rank[2]     rank[3]
+*  op(0,1,2,3)  op(0,1,2,3) op(0,1,2,3) op(0,1,2,3)
 */
 void NCCLAllReduce(
     const core::Context& ctx,

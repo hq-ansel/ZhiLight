@@ -61,7 +61,7 @@ size_t TensorImpl::stride(int dim) const {
 size_t TensorImpl::stride_bytes(int dim) const {
     return stride(dim) * get_elem_size(dtype_);
 }
-
+// return mem object
 void* TensorImpl::data() const {
     if (mem && mem->ptr != nullptr) {
         return (uint8_t*) mem->ptr + offset;
